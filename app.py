@@ -94,10 +94,10 @@ en_tfa = st.radio(
 # ------------------------------------------------------------------------------
 if en_tfa == "Sí":
     st.subheader("Situación académica: TFA en curso")
-    apellido_tfa = st.text_input("Apellido (opcional)", key="apellido_tfa")
-    nombre_tfa = st.text_input("Nombre (opcional)", key="nombre_tfa")
-    dni_tfa = st.text_input("DNI sin puntos (opcional)", key="dni_tfa")
-    email_tfa = st.text_input("Correo electrónico (opcional)", key="email_tfa")
+    apellido_tfa = st.text_input("Apellido", key="apellido_tfa")
+    nombre_tfa = st.text_input("Nombre", key="nombre_tfa")
+    dni_tfa = st.text_input("DNI sin puntos", key="dni_tfa")
+    email_tfa = st.text_input("Correo electrónico", key="email_tfa")
     carrera_tfa = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_tfa")
 
     if carrera_tfa != "Seleccionar...":
