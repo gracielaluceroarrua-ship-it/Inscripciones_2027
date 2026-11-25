@@ -40,6 +40,19 @@ MENSAJE_CONOCIMIENTOS_SOLIDOS = (
     "Nos pondremos en contacto con vos **a la brevedad** para informarte **fecha y modalidad**."
 )
 
+MENSAJE_CERTIFICADO_INSTITUTO = (
+    "Si contás con un **certificado de examen internacional** o **constancia de aprobación "
+    "de inglés en un instituto privado**, debés enviarla por correo electrónico a "
+    "**inglesfmn@gmail.com**.\n\n"
+    "📌 **Aclaración:** La aceptación de los certificados o constancias estará sujeta a la "
+    "**evaluación del equipo docente** respecto de su **validez y alcance**."
+)
+
+MENSAJE_EQUIVALENCIA_OTRA_CARRERA = (
+    "Si tenés **Inglés aprobado en otra carrera**, el procedimiento corresponde a solicitar "
+    "la **equivalencia** comunicándote a **equivalencia.fmn@gmail.com**."
+)
+
 
 def obtener_pestana_destino(tiene_certificado: str, carrera: str) -> str:
     if tiene_certificado == "Sí":
@@ -132,7 +145,7 @@ if en_tfa == "Sí":
 elif en_tfa == "No":
     st.subheader("2. Antecedentes en el idioma")
     tiene_certificado = st.radio(
-        "¿Poseés certificado internacional vigente o Inglés aprobado en otra carrera?",
+        "¿Poseés certificado internacional vigente, constancia de instituto privado o Inglés aprobado en otra carrera?",
         [
             "Seleccionar...",
             "Sí",
@@ -142,7 +155,23 @@ elif en_tfa == "No":
     )
 
     if tiene_certificado != "Seleccionar...":
-        if tiene_certificado == "No, pero poseo conocimientos sólidos de inglés":
+        tipo_antecedente = None
+        if tiene_certificado == "Sí":
+            tipo_antecedente = st.radio(
+                "Indicá cuál es tu situación:",
+                [
+                    "Seleccionar...",
+                    "Certificado de examen internacional o constancia de instituto privado",
+                    "Inglés aprobado en otra carrera",
+                ],
+                key="tipo_antecedente",
+            )
+            if tipo_antecedente == "Certificado de examen internacional o constancia de instituto privado":
+                st.info(f"ℹ️ {MENSAJE_CERTIFICADO_INSTITUTO}")
+            elif tipo_antecedente == "Inglés aprobado en otra carrera":
+                st.info(f"ℹ️ {MENSAJE_EQUIVALENCIA_OTRA_CARRERA}")
+
+        elif tiene_certificado == "No, pero poseo conocimientos sólidos de inglés":
             st.info(f"ℹ️ {MENSAJE_CONOCIMIENTOS_SOLIDOS}")
 
         st.subheader("3. Datos personales y académicos")
@@ -153,11 +182,18 @@ elif en_tfa == "No":
         carrera = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_no_tfa")
 
         if tiene_certificado == "Sí":
-            mensaje_exito = (
-                "✅ **Datos registrados correctamente.**\n\n"
-                "El equipo docente revisará tu situación y **se contactará con vos a la brevedad** "
-                "para indicarte cómo proceder con la acreditación o equivalencia."
-            )
+            if tipo_antecedente == "Inglés aprobado en otra carrera":
+                mensaje_exito = (
+                    "✅ **Datos registrados correctamente.**\n\n"
+                    f"{MENSAJE_EQUIVALENCIA_OTRA_CARRERA}\n\n"
+                    "Además, el equipo docente se pondrá en contacto a la brevedad."
+                )
+            else:
+                mensaje_exito = (
+                    "✅ **Datos registrados correctamente.**\n\n"
+                    f"{MENSAJE_CERTIFICADO_INSTITUTO}\n\n"
+                    "El equipo docente se contactará con vos a la brevedad."
+                )
         elif tiene_certificado == "No":
             mensaje_exito = (
                 "✅ **¡Preinscripción registrada correctamente para Inglés 2027!**"
@@ -169,10 +205,17 @@ elif en_tfa == "No":
             )
 
         if st.button("Enviar registro", type="primary"):
-            if not (apellido.strip() and nombre.strip() and dni.strip() and email.strip()) or carrera == "Seleccionar...":
+            falta_antecedente = (
+                tiene_certificado == "Sí" and tipo_antecedente == "Seleccionar..."
+            )
+            if (
+                not (apellido.strip() and nombre.strip() and dni.strip() and email.strip())
+                or carrera == "Seleccionar..."
+                or falta_antecedente
+            ):
                 st.warning(
-                    "Por favor, completá Apellido, Nombre, DNI (sin puntos), Correo electrónico "
-                    "y Carrera antes de enviar."
+                    "Por favor, completá todos los campos obligatorios (incluida la opción de antecedente "
+                    "y la carrera) antes de enviar."
                 )
             else:
                 pestana_destino = obtener_pestana_destino(tiene_certificado, carrera)
