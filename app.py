@@ -21,10 +21,33 @@ CARRERAS = [
     "Tecnicatura Universitaria en Teledetección y Sistemas de Información Geográfica - T-SIG (OCD-13/22)",
     "Lic. en Cs. Geológicas (Plan 02/22)",
     "Ingeniería en Minas (Plan 11/23)",
+    "Tecnicatura Universitaria en Explotación Minera",
     "Tecnicatura Universitaria en Minería (Plan 6/15 - Vocacional)",
     "Tecnicatura Universitaria en Obras Viales (Plan 01/18 - Vocacional)",
     "Tecnicatura Universitaria en Fotografía (Plan 15/15 - Vocacional)",
 ]
+
+CARRERAS_AGRUPADAS = {
+    "Lic. en Cs. Geológicas (Plan 02/22)",
+    "Ingeniería en Minas (Plan 11/23)",
+    "Tecnicatura Universitaria en Obras Viales (Plan 01/18 - Vocacional)",
+    "Tecnicatura Universitaria en Explotación Minera",
+}
+
+
+def obtener_pestana_destino(tiene_certificado: str, carrera: str) -> str:
+    if tiene_certificado == "Sí":
+        base = "Con_Certificado"
+    elif tiene_certificado == "No":
+        base = "Inscripcion_Regular"
+    else:
+        base = "Conocimientos_Solidos"
+
+    if carrera == "Profesorado en Matemática":
+        return f"{base}_Prof_Mat"
+    if carrera in CARRERAS_AGRUPADAS:
+        return f"{base}_Geo_Minas"
+    return base
 
 
 def enviar_a_sheets(payload: dict) -> bool:
@@ -115,19 +138,16 @@ elif en_tfa == "No":
         carrera = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_no_tfa")
 
         if tiene_certificado == "Sí":
-            pestana_destino = "Con_Certificado"
             mensaje_exito = (
                 "✅ **Datos registrados correctamente.**\n\n"
                 "El equipo docente revisará tu situación y **se contactará con vos a la brevedad** "
                 "para indicarte cómo proceder con la acreditación o equivalencia."
             )
         elif tiene_certificado == "No":
-            pestana_destino = "Inscripcion_Regular"
             mensaje_exito = (
                 "✅ **¡Preinscripción registrada correctamente para Inglés 2027!**"
             )
         else:
-            pestana_destino = "Conocimientos_Solidos"
             mensaje_exito = (
                 "✅ **Datos registrados correctamente.**\n\n"
                 "El equipo docente **se contactará con vos a la brevedad** para evaluar tu situación "
@@ -141,6 +161,7 @@ elif en_tfa == "No":
                     "y Carrera antes de enviar."
                 )
             else:
+                pestana_destino = obtener_pestana_destino(tiene_certificado, carrera)
                 with st.spinner("Guardando registro..."):
                     ok = enviar_a_sheets({
                         "pestana": pestana_destino,
