@@ -1,225 +1,146 @@
-import datetime
-import gspread
+import requests
 import streamlit as st
 
-# Configuración de la página
-st.set_page_config(
-    page_title="Inscripción Académica 2026", page_icon="📝", layout="centered"
+st.set_page_config(page_title="Inscripciones Inglés 2027", page_icon="📝")
+
+CARRERAS = [
+    "Lic. en Cs. Matemáticas (Plan 9/17)",
+    "Profesorado en Matemática",
+    "Profesorado en Tecnología Electrónica (Plan 05/09)",
+    "Tecnicatura Universitaria en Electrónica (Plan 15/13)",
+    "Tecnicatura Universitaria en Telecomunicaciones (Plan 16/13)",
+    "Ingeniería en Electrónica con Orientación en Sistemas Digitales (Plan 13/08 - OCD-6/24)",
+    "Tecnicatura Universitaria en Energías Renovables (Plan 05/13)",
+    "Lic. en Física (Plan 15/06)",
+    "Prof. en Física (Plan 16/06)",
+    "Ingeniería en Computación (Plan 28/12)",
+    "Ingeniería en Informática (Plan 26/12 - OCD-2/25)",
+    "Prof. en Cs. de la Computación (Plan 35/86)",
+    "Tecnicatura Universitaria en Redes de Computadoras (Plan 12/15)",
+    "Tecnicatura Universitaria en Web (Plan 08/13)",
+    "Tecnicatura Universitaria en Teledetección y Sistemas de Información Geográfica - T-SIG (OCD-13/22)",
+    "Lic. en Cs. Geológicas (Plan 02/22)",
+    "Ingeniería en Minas (Plan 11/23)",
+    "Tecnicatura Universitaria en Minería (Plan 6/15 - Vocacional)",
+    "Tecnicatura Universitaria en Obras Viales (Plan 01/18 - Vocacional)",
+    "Tecnicatura Universitaria en Fotografía (Plan 15/15 - Vocacional)",
+]
+
+
+def enviar_a_sheets(payload: dict) -> bool:
+    url = st.secrets.get("APPS_SCRIPT_URL", "").strip()
+    if not url:
+        st.error("Falta configurar APPS_SCRIPT_URL en Secrets.")
+        return False
+    try:
+        resp = requests.post(url, json=payload, timeout=15, allow_redirects=True)
+        if resp.status_code == 200:
+            try:
+                data = resp.json()
+                if data.get("status") == "ok":
+                    return True
+                st.error(f"Error en Apps Script: {data.get('message')}")
+                return False
+            except ValueError:
+                st.error("Respuesta inválida del servidor. Verificá los permisos de la Web App.")
+                return False
+        st.error(f"Error HTTP {resp.status_code} al conectar con la planilla.")
+        return False
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
+        return False
+
+
+st.title("📝 Registro de Inscripciones — Inglés 2027")
+st.write("Respondé las siguientes preguntas para completar tu registro en la asignatura.")
+
+# PASO 1: ¿Estás en TFA?
+en_tfa = st.radio(
+    "1. ¿Estás cursando actualmente el Trayecto de Formación de Apoyo (TFA)?",
+    ["Seleccionar...", "Sí", "No"],
 )
 
-st.title("📝 Sistema de Inscripción Académica")
+# ------------------------------------------------------------------------------
+# RAMA A: ESTÁ EN TFA (Sí)
+# ------------------------------------------------------------------------------
+if en_tfa == "Sí":
+    st.subheader("Situación académica: TFA en curso")
+    nombre_tfa = st.text_input("Apellido y Nombre completos (opcional)")
+    dni_tfa = st.text_input("DNI sin puntos (opcional)")
+    carrera_tfa = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_tfa")
 
-# --- ID DE LA PLANILLA DE GOOGLE SHEETS ---
-SPREADSHEET_ID = "14o-xOc6WB0kqycpUPE6K7rmu3dfiV1poVbCBsZQBs5I"
+    if carrera_tfa != "Seleccionar...":
+        st.warning(
+            "📌 **Aviso importante:** Mientras te encuentres cursando el **TFA**, no es posible "
+            "inscribirte ni cursar Inglés.\n\n"
+            "Una vez que apruebes el TFA, por favor comunicate con el equipo docente escribiendo a "
+            "**inglesfmn@gmail.com** con el asunto **`aprobé el TFA`** para que podamos orientarte "
+            "y coordinar cómo continuar tu recorrido en la asignatura. ¡Muchos éxitos en esta etapa!"
+        )
 
+        if st.button("Registrar mi consulta", type="primary"):
+            with st.spinner("Registrando..."):
+                ok = enviar_a_sheets({
+                    "pestana": "TFA",
+                    "nombre": nombre_tfa.strip(),
+                    "dni": dni_tfa.strip(),
+                    "carrera": carrera_tfa,
+                })
+                if ok:
+                    st.success("✅ Registro guardado. Recordá escribirnos cuando apruebes el TFA.")
 
-# --- CONEXIÓN CON GOOGLE SHEETS ---
-@st.cache_resource
-def conectar_google_sheets():
-  try:
-    gc = gspread.service_account_from_dict(st.secrets["gcp_service_account"])
-    sh = gc.open_by_key(SPREADSHEET_ID)
-    return sh
-  except Exception as e:
-    return None
-
-
-sh = conectar_google_sheets()
-
-# --- INICIALIZACIÓN DE ESTADOS ---
-if "paso" not in st.session_state:
-  st.session_state.paso = 1
-if "tfa" not in st.session_state:
-  st.session_state.tfa = ""
-if "certificado_opcion" not in st.session_state:
-  st.session_state.certificado_opcion = ""
-
-
-# ==========================================
-# PASO 1: ¿Estás en TFA?
-# ==========================================
-if st.session_state.paso == 1:
-  st.subheader("1. Estado Académico")
-  tfa_respuesta = st.radio("¿Estás cursando TFA?", ["Seleccione...", "Sí", "No"])
-
-  if st.button("Siguiente"):
-    if tfa_respuesta == "Seleccione...":
-      st.warning("Por favor, seleccione una opción.")
-    else:
-      st.session_state.tfa = tfa_respuesta
-      if tfa_respuesta == "Sí":
-        st.session_state.paso = 2  # Va a sección TFA
-      else:
-        st.session_state.paso = 3  # Va a sección de certificados
-      st.rerun()
-
-
-# ==========================================
-# PASO 2: Camino SÍ cursa TFA
-# ==========================================
-elif st.session_state.paso == 2:
-  st.subheader("2. Registro - Cursa TFA")
-
-  with st.form("tfa_form"):
-    carrera_tfa = st.selectbox(
-        "Seleccione su carrera:",
+# ------------------------------------------------------------------------------
+# RAMA B: NO ESTÁ EN TFA (No)
+# ------------------------------------------------------------------------------
+elif en_tfa == "No":
+    st.subheader("2. Antecedentes en el idioma")
+    tiene_certificado = st.radio(
+        "¿Poseés certificado internacional vigente o Inglés aprobado en otra carrera?",
         [
-            "Seleccione...",
-            "Licenciatura en Ciencias de la Computación",
-            "Ingeniería en Informática",
-            "Profesorado en Matemática",
-            "Tecnicatura Web",
-        ],
-    )
-    enviar_tfa = st.form_submit_button("Registrar situación")
-
-  if enviar_tfa:
-    if carrera_tfa == "Seleccione...":
-      st.warning("Por favor, seleccione su carrera.")
-    elif sh is None:
-      st.error("Error de conexión con Google Sheets.")
-    else:
-      fecha_hora = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-      try:
-        hoja = sh.worksheet("TFA_Rechazados")
-        fila = [fecha_hora, carrera_tfa, "Cursa TFA"]
-        hoja.append_row(fila)
-        st.session_state.enviado = True
-      except Exception as e:
-        st.error(f"Error al guardar: {e}")
-
-  if st.session_state.get("enviado", False):
-    st.error(
-        "⚠️ **Aviso importante:** Actualmente no puedes cursar. Por favor,"
-        " comunícate con el equipo docente cuando apruebes para coordinar cómo"
-        " seguir escribiendo a **inglesfmn@gmail.com** con el asunto **'aprobé"
-        " el TFA'**."
-    )
-    if st.button("Reiniciar"):
-      st.session_state.clear()
-      st.rerun()
-
-
-# ==========================================
-# PASO 3: Camino NO cursa TFA (Elección de Certificado)
-# ==========================================
-elif st.session_state.paso == 3:
-  st.subheader("2. Acreditación de Idioma")
-  cert_opcion = st.radio(
-      "¿Posee certificado de inglés?",
-      [
-          "Seleccione...",
-          "Sí",
-          "No",
-          "No, pero poseo conocimientos sólidos de inglés",
-      ],
-  )
-
-  col1, col2 = st.columns(2)
-  with col1:
-    if st.button("Volver"):
-      st.session_state.paso = 1
-      st.rerun()
-  with col2:
-    if st.button("Continuar"):
-      if cert_opcion == "Seleccione...":
-        st.warning("Por favor, seleccione una opción.")
-      else:
-        st.session_state.certificado_opcion = cert_opcion
-        st.session_state.paso = 4
-        st.rerun()
-
-
-# ==========================================
-# PASO 4: Formulario de Datos Personales + Subida de Certificado (si corresponde)
-# ==========================================
-elif st.session_state.paso == 4:
-  opcion = st.session_state.certificado_opcion
-
-  if opcion == "Sí":
-    st.subheader("3. Complete sus datos y adjunte su certificado de inglés")
-    pestana_destino = "Inscriptos_Con_Certificado"
-  elif opcion == "No":
-    st.subheader("3. Complete sus datos (Inscriptos sin certificado)")
-    pestana_destino = "Inscriptos_Sin_Certificado"
-  else:
-    st.subheader(
-        "3. Complete sus datos (Conocimientos sólidos sin certificado)"
-    )
-    pestana_destino = "Conocimientos_Solidos"
-
-  with st.form("datos_form"):
-    nombre_apellido = st.text_input("Nombre y apellido completos")
-    dni = st.text_input("DNI (sin puntos)")
-    carrera = st.selectbox(
-        "Seleccione su carrera:",
-        [
-            "Seleccione...",
-            "Licenciatura en Ciencias de la Computación",
-            "Ingeniería en Informática",
-            "Profesorado en Matemática",
-            "Tecnicatura Web",
+            "Seleccionar...",
+            "Sí",
+            "No",
+            "No, pero poseo conocimientos sólidos de inglés",
         ],
     )
 
-    archivo_certificado = None
-    if opcion == "Sí":
-      archivo_certificado = st.file_uploader(
-          "Adjuntar certificado de inglés (PDF o Imagen)",
-          type=["pdf", "png", "jpg", "jpeg"],
-      )
+    if tiene_certificado != "Seleccionar...":
+        st.subheader("3. Datos personales y académicos")
+        nombre = st.text_input("Apellido y Nombre completos")
+        dni = st.text_input("DNI (sin puntos)")
+        carrera = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_no_tfa")
 
-    enviar_datos = st.form_submit_button("Finalizar inscripción")
+        # Determinación de pestaña destino y mensaje final según elección
+        if tiene_certificado == "Sí":
+            pestana_destino = "Con_Certificado"
+            mensaje_exito = (
+                "✅ **Datos registrados correctamente.**\n\n"
+                "El equipo docente revisará tu situación y **se contactará con vos a la brevedad** "
+                "para indicarte cómo proceder con la acreditación o equivalencia."
+            )
+        elif tiene_certificado == "No":
+            pestana_destino = "Inscripcion_Regular"
+            mensaje_exito = (
+                "✅ **¡Preinscripción registrada correctamente para Inglés 2027!**"
+            )
+        else:  # "No, pero poseo conocimientos sólidos de inglés"
+            pestana_destino = "Conocimientos_Solidos"
+            mensaje_exito = (
+                "✅ **Datos registrados correctamente.**\n\n"
+                "El equipo docente **se contactará con vos a la brevedad** para evaluar tu situación "
+                "y determinar cómo seguir."
+            )
 
-  if enviar_datos:
-    if not nombre_apellido or not dni or carrera == "Seleccione...":
-      st.warning("Por favor, complete todos los campos obligatorios.")
-    elif opcion == "Sí" and archivo_certificado is None:
-      st.warning("Por favor, adjunte su certificado de inglés antes de enviar.")
-    elif sh is None:
-      st.error("Error de conexión con Google Sheets.")
-    else:
-      fecha_hora = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-      dni_limpio = "".join(filter(str.isdigit, str(dni)))
-
-      nombre_archivo = (
-          archivo_certificado.name if archivo_certificado else "N/A"
-      )
-
-      try:
-        hoja = sh.worksheet(pestana_destino)
-        fila = [
-            fecha_hora,
-            nombre_apellido,
-            dni_limpio,
-            carrera,
-            opcion,
-            nombre_archivo,
-        ]
-        hoja.append_row(fila)
-        st.session_state.registro_exitoso = True
-      except Exception as e:
-        st.error(f"Error al registrar los datos en la planilla: {e}")
-
-  if st.session_state.get("registro_exitoso", False):
-    st.success("¡Información registrada correctamente!")
-
-    if opcion == "Sí":
-      st.info(
-          "📩 **¡Gracias!** Serás contactado a la brevedad por el equipo"
-          " docente para determinar cómo seguir."
-      )
-    elif opcion == "No":
-      st.info(
-          "✅ **¡Inscripción registrada con éxito!** Tus datos se guardaron"
-          " correctamente en el sistema."
-      )
-    else:
-      st.info(
-          "📩 **¡Gracias!** Serás contactado por el equipo docente para"
-          " determinar cómo seguir."
-      )
-
-    if st.button("Hacer otra consulta"):
-      st.session_state.clear()
-      st.rerun()
+        if st.button("Enviar registro", type="primary"):
+            if not (nombre.strip() and dni.strip()) or carrera == "Seleccionar...":
+                st.warning("Por favor, completá Apellido y Nombre, DNI (sin puntos) y Carrera antes de enviar.")
+            else:
+                with st.spinner("Guardando registro..."):
+                    ok = enviar_a_sheets({
+                        "pestana": pestana_destino,
+                        "nombre": nombre.strip(),
+                        "dni": dni.strip(),
+                        "carrera": carrera,
+                    })
+                    if ok:
+                        st.success(mensaje_exito)
