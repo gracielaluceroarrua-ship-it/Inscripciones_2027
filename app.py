@@ -34,6 +34,12 @@ CARRERAS_AGRUPADAS = {
     "Tecnicatura Universitaria en Explotación Minera",
 }
 
+MENSAJE_CONOCIMIENTOS_SOLIDOS = (
+    "Quienes declaren conocimientos sólidos deberán realizar una **instancia diagnóstica** "
+    "para determinar su nivel y ofrecerles una experiencia de cursado más provechosa. "
+    "Nos pondremos en contacto con vos **a la brevedad** para informarte **fecha y modalidad**."
+)
+
 
 def obtener_pestana_destino(tiene_certificado: str, carrera: str) -> str:
     if tiene_certificado == "Sí":
@@ -130,6 +136,9 @@ elif en_tfa == "No":
     )
 
     if tiene_certificado != "Seleccionar...":
+        if tiene_certificado == "No, pero poseo conocimientos sólidos de inglés":
+            st.info(f"ℹ️ {MENSAJE_CONOCIMIENTOS_SOLIDOS}")
+
         st.subheader("3. Datos personales y académicos")
         apellido = st.text_input("Apellido", key="apellido_no_tfa")
         nombre = st.text_input("Nombre", key="nombre_no_tfa")
@@ -150,8 +159,7 @@ elif en_tfa == "No":
         else:
             mensaje_exito = (
                 "✅ **Datos registrados correctamente.**\n\n"
-                "El equipo docente **se contactará con vos a la brevedad** para evaluar tu situación "
-                "y determinar cómo seguir."
+                f"{MENSAJE_CONOCIMIENTOS_SOLIDOS}"
             )
 
         if st.button("Enviar registro", type="primary"):
