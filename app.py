@@ -96,29 +96,35 @@ if en_tfa == "Sí":
     st.subheader("Situación académica: TFA en curso")
     apellido_tfa = st.text_input("Apellido", key="apellido_tfa")
     nombre_tfa = st.text_input("Nombre", key="nombre_tfa")
-    dni_tfa = st.text_input("DNI sin puntos", key="dni_tfa")
-    email_tfa = st.text_input("Correo electrónico", key="email_tfa")
+    dni_tfa = st.text_input("DNI sin puntos (opcional)", key="dni_tfa")
+    email_tfa = st.text_input("Correo electrónico (opcional)", key="email_tfa")
     carrera_tfa = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_tfa")
 
     if carrera_tfa != "Seleccionar...":
         st.warning(
             "📌 **Aviso importante:** Mientras estés cursando el **TFA**, no podés inscribirte "
-            "ni cursar Inglés. Cuando apruebes el TFA, escribinos a **inglesfmn@gmail.com** "
-            "con el asunto **`aprobé el TFA`** para coordinar cómo continuar. ¡Muchos éxitos!"
+            "ni cursar Inglés.\n\n"
+            "1. **Antes de salir, hacé clic en el botón «Registrar mi consulta»** que figura aquí abajo "
+            "para dejar asentada tu situación.\n"
+            "2. Una vez que apruebes el TFA, escribinos a **inglesfmn@gmail.com** con el asunto "
+            "**`aprobé el TFA`** para coordinar cómo continuar. ¡Muchos éxitos!"
         )
 
         if st.button("Registrar mi consulta", type="primary"):
-            with st.spinner("Registrando..."):
-                ok = enviar_a_sheets({
-                    "pestana": "TFA",
-                    "apellido": apellido_tfa.strip(),
-                    "nombre": nombre_tfa.strip(),
-                    "dni": dni_tfa.strip(),
-                    "email": email_tfa.strip(),
-                    "carrera": carrera_tfa,
-                })
-                if ok:
-                    st.success("✅ Registro guardado. Recordá escribirnos cuando apruebes el TFA.")
+            if not (apellido_tfa.strip() and nombre_tfa.strip()):
+                st.warning("Por favor, completá Apellido y Nombre antes de registrar tu consulta.")
+            else:
+                with st.spinner("Registrando..."):
+                    ok = enviar_a_sheets({
+                        "pestana": "TFA",
+                        "apellido": apellido_tfa.strip(),
+                        "nombre": nombre_tfa.strip(),
+                        "dni": dni_tfa.strip(),
+                        "email": email_tfa.strip(),
+                        "carrera": carrera_tfa,
+                    })
+                    if ok:
+                        st.success("✅ Consulta registrada correctamente. Recordá escribirnos cuando apruebes el TFA.")
 
 # ------------------------------------------------------------------------------
 # RAMA B: NO ESTÁ EN TFA (No)
