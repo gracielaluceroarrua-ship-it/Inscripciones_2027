@@ -188,4 +188,43 @@ elif en_tfa == "No":
             nombre = st.text_input("Nombre", key="nombre_no_tfa")
             dni = st.text_input("DNI (sin puntos)", key="dni_no_tfa")
             email = st.text_input("Correo electrónico", key="email_no_tfa")
-            carrera = st.
+            carrera = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_no_tfa")
+
+            if tiene_certificado == "Sí":
+                mensaje_exito = (
+                    "✅ **Datos registrados correctamente.**\n\n"
+                    f"{MENSAJE_CERTIFICADO_INSTITUTO}\n\n"
+                    "El equipo docente se contactará con vos a la brevedad."
+                )
+            elif tiene_certificado == "No":
+                mensaje_exito = (
+                    "✅ **¡Preinscripción registrada correctamente para Inglés 2027!**"
+                )
+            else:
+                mensaje_exito = (
+                    "✅ **Datos registrados correctamente.**\n\n"
+                    f"{MENSAJE_CONOCIMIENTOS_SOLIDOS}"
+                )
+
+            if st.button("Enviar registro", type="primary"):
+                if (
+                    not (apellido.strip() and nombre.strip() and dni.strip() and email.strip())
+                    or carrera == "Seleccionar..."
+                ):
+                    st.warning(
+                        "Por favor, completá Apellido, Nombre, DNI (sin puntos), Correo electrónico "
+                        "y Carrera antes de enviar."
+                    )
+                else:
+                    pestana_destino = obtener_pestana_destino(tiene_certificado, carrera)
+                    with st.spinner("Guardando registro..."):
+                        ok = enviar_a_sheets({
+                            "pestana": pestana_destino,
+                            "apellido": apellido.strip(),
+                            "nombre": nombre.strip(),
+                            "dni": dni.strip(),
+                            "email": email.strip(),
+                            "carrera": carrera,
+                        })
+                        if ok:
+                            st.success(mensaje_exito)
