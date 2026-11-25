@@ -65,7 +65,8 @@ en_tfa = st.radio(
 # ------------------------------------------------------------------------------
 if en_tfa == "Sí":
     st.subheader("Situación académica: TFA en curso")
-    nombre_tfa = st.text_input("Apellido y Nombre completos (opcional)", key="nombre_tfa")
+    apellido_tfa = st.text_input("Apellido (opcional)", key="apellido_tfa")
+    nombre_tfa = st.text_input("Nombre (opcional)", key="nombre_tfa")
     dni_tfa = st.text_input("DNI sin puntos (opcional)", key="dni_tfa")
     email_tfa = st.text_input("Correo electrónico (opcional)", key="email_tfa")
     carrera_tfa = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_tfa")
@@ -81,6 +82,7 @@ if en_tfa == "Sí":
             with st.spinner("Registrando..."):
                 ok = enviar_a_sheets({
                     "pestana": "TFA",
+                    "apellido": apellido_tfa.strip(),
                     "nombre": nombre_tfa.strip(),
                     "dni": dni_tfa.strip(),
                     "email": email_tfa.strip(),
@@ -106,7 +108,8 @@ elif en_tfa == "No":
 
     if tiene_certificado != "Seleccionar...":
         st.subheader("3. Datos personales y académicos")
-        nombre = st.text_input("Apellido y Nombre completos", key="nombre_no_tfa")
+        apellido = st.text_input("Apellido", key="apellido_no_tfa")
+        nombre = st.text_input("Nombre", key="nombre_no_tfa")
         dni = st.text_input("DNI (sin puntos)", key="dni_no_tfa")
         email = st.text_input("Correo electrónico", key="email_no_tfa")
         carrera = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_no_tfa")
@@ -132,15 +135,16 @@ elif en_tfa == "No":
             )
 
         if st.button("Enviar registro", type="primary"):
-            if not (nombre.strip() and dni.strip() and email.strip()) or carrera == "Seleccionar...":
+            if not (apellido.strip() and nombre.strip() and dni.strip() and email.strip()) or carrera == "Seleccionar...":
                 st.warning(
-                    "Por favor, completá Apellido y Nombre, DNI (sin puntos), Correo electrónico "
+                    "Por favor, completá Apellido, Nombre, DNI (sin puntos), Correo electrónico "
                     "y Carrera antes de enviar."
                 )
             else:
                 with st.spinner("Guardando registro..."):
                     ok = enviar_a_sheets({
                         "pestana": pestana_destino,
+                        "apellido": apellido.strip(),
                         "nombre": nombre.strip(),
                         "dni": dni.strip(),
                         "email": email.strip(),
