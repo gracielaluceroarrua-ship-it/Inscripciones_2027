@@ -37,7 +37,7 @@ CARRERAS_AGRUPADAS = {
 MENSAJE_CONOCIMIENTOS_SOLIDOS = (
     "Quienes declaren conocimientos sólidos deberán realizar una **instancia diagnóstica** "
     "para determinar su nivel y ofrecerles una experiencia de cursado más provechosa. "
-    "Nos pondremos en contacto con vos **a la brevedad** para informarte **fecha y modalidad**."
+    "Nos pondremos en contacto con vos **a la brevedad** para informarte **día, horario y modalidad**."
 )
 
 MENSAJE_CERTIFICADO_INSTITUTO = (
@@ -54,6 +54,14 @@ MENSAJE_EQUIVALENCIA_OTRA_CARRERA = (
     "Si tenés **Inglés aprobado en otra carrera**, no debés completar este registro: "
     "el camino correspondiente es solicitar la **equivalencia** comunicándote a "
     "**equivalencia.fmn@gmail.com**."
+)
+
+MENSAJE_CONFIRMACION_COMUN = (
+    "✅ **¡Registro guardado correctamente para Inglés 2027!**\n\n"
+    "Nos comunicaremos con vos **a la brevedad** para informarte:\n"
+    "- **Estudiantes regulares:** horarios y aulas.\n"
+    "- **Quienes declararon conocimientos sólidos:** día, horario y modalidad del examen de diagnóstico.\n"
+    "- **Quienes presentaron certificado o constancia:** pasos a seguir."
 )
 
 
@@ -194,20 +202,13 @@ elif en_tfa == "No":
 
             if tiene_certificado == "Sí":
                 mensaje_exito = (
-                    "✅ **Datos registrados correctamente.**\n\n"
-                    "Recordá enviar ahora tu certificado o constancia por correo electrónico a "
-                    "**inglesfmn@gmail.com** (sujeto a evaluación del equipo docente respecto de su validez y alcance). "
-                    "Nos pondremos en contacto con vos a la brevedad."
-                )
-            elif tiene_certificado == "No":
-                mensaje_exito = (
-                    "✅ **¡Preinscripción registrada correctamente para Inglés 2027!**"
+                    f"{MENSAJE_CONFIRMACION_COMUN}\n\n"
+                    "📩 **Recordatorio:** No olvides enviar ahora tu certificado o constancia por correo "
+                    "electrónico a **inglesfmn@gmail.com** (sujeto a evaluación del equipo docente respecto "
+                    "de su validez y alcance)."
                 )
             else:
-                mensaje_exito = (
-                    "✅ **Datos registrados correctamente.**\n\n"
-                    f"{MENSAJE_CONOCIMIENTOS_SOLIDOS}"
-                )
+                mensaje_exito = MENSAJE_CONFIRMACION_COMUN
 
             if st.button("Enviar registro", type="primary"):
                 if (
