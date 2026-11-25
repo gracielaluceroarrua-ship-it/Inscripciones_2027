@@ -49,8 +49,9 @@ MENSAJE_CERTIFICADO_INSTITUTO = (
 )
 
 MENSAJE_EQUIVALENCIA_OTRA_CARRERA = (
-    "Si tenés **Inglés aprobado en otra carrera**, el procedimiento corresponde a solicitar "
-    "la **equivalencia** comunicándote a **equivalencia.fmn@gmail.com**."
+    "Si tenés **Inglés aprobado en otra carrera**, no debés completar este registro: "
+    "el camino correspondiente es solicitar la **equivalencia** comunicándote a "
+    "**equivalencia.fmn@gmail.com**."
 )
 
 
@@ -155,7 +156,8 @@ elif en_tfa == "No":
     )
 
     if tiene_certificado != "Seleccionar...":
-        tipo_antecedente = None
+        mostrar_formulario = False
+
         if tiene_certificado == "Sí":
             tipo_antecedente = st.radio(
                 "Indicá cuál es tu situación:",
@@ -168,65 +170,22 @@ elif en_tfa == "No":
             )
             if tipo_antecedente == "Certificado de examen internacional o constancia de instituto privado":
                 st.info(f"ℹ️ {MENSAJE_CERTIFICADO_INSTITUTO}")
+                mostrar_formulario = True
             elif tipo_antecedente == "Inglés aprobado en otra carrera":
-                st.info(f"ℹ️ {MENSAJE_EQUIVALENCIA_OTRA_CARRERA}")
+                st.warning(f"📌 {MENSAJE_EQUIVALENCIA_OTRA_CARRERA}")
+                mostrar_formulario = False
 
-        elif tiene_certificado == "No, pero poseo conocimientos sólidos de inglés":
-            st.info(f"ℹ️ {MENSAJE_CONOCIMIENTOS_SOLIDOS}")
-
-        st.subheader("3. Datos personales y académicos")
-        apellido = st.text_input("Apellido", key="apellido_no_tfa")
-        nombre = st.text_input("Nombre", key="nombre_no_tfa")
-        dni = st.text_input("DNI (sin puntos)", key="dni_no_tfa")
-        email = st.text_input("Correo electrónico", key="email_no_tfa")
-        carrera = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_no_tfa")
-
-        if tiene_certificado == "Sí":
-            if tipo_antecedente == "Inglés aprobado en otra carrera":
-                mensaje_exito = (
-                    "✅ **Datos registrados correctamente.**\n\n"
-                    f"{MENSAJE_EQUIVALENCIA_OTRA_CARRERA}\n\n"
-                    "Además, el equipo docente se pondrá en contacto a la brevedad."
-                )
-            else:
-                mensaje_exito = (
-                    "✅ **Datos registrados correctamente.**\n\n"
-                    f"{MENSAJE_CERTIFICADO_INSTITUTO}\n\n"
-                    "El equipo docente se contactará con vos a la brevedad."
-                )
         elif tiene_certificado == "No":
-            mensaje_exito = (
-                "✅ **¡Preinscripción registrada correctamente para Inglés 2027!**"
-            )
-        else:
-            mensaje_exito = (
-                "✅ **Datos registrados correctamente.**\n\n"
-                f"{MENSAJE_CONOCIMIENTOS_SOLIDOS}"
-            )
+            mostrar_formulario = True
 
-        if st.button("Enviar registro", type="primary"):
-            falta_antecedente = (
-                tiene_certificado == "Sí" and tipo_antecedente == "Seleccionar..."
-            )
-            if (
-                not (apellido.strip() and nombre.strip() and dni.strip() and email.strip())
-                or carrera == "Seleccionar..."
-                or falta_antecedente
-            ):
-                st.warning(
-                    "Por favor, completá todos los campos obligatorios (incluida la opción de antecedente "
-                    "y la carrera) antes de enviar."
-                )
-            else:
-                pestana_destino = obtener_pestana_destino(tiene_certificado, carrera)
-                with st.spinner("Guardando registro..."):
-                    ok = enviar_a_sheets({
-                        "pestana": pestana_destino,
-                        "apellido": apellido.strip(),
-                        "nombre": nombre.strip(),
-                        "dni": dni.strip(),
-                        "email": email.strip(),
-                        "carrera": carrera,
-                    })
-                    if ok:
-                        st.success(mensaje_exito)
+        else:  # "No, pero poseo conocimientos sólidos de inglés"
+            st.info(f"ℹ️ {MENSAJE_CONOCIMIENTOS_SOLIDOS}")
+            mostrar_formulario = True
+
+        if mostrar_formulario:
+            st.subheader("3. Datos personales y académicos")
+            apellido = st.text_input("Apellido", key="apellido_no_tfa")
+            nombre = st.text_input("Nombre", key="nombre_no_tfa")
+            dni = st.text_input("DNI (sin puntos)", key="dni_no_tfa")
+            email = st.text_input("Correo electrónico", key="email_no_tfa")
+            carrera = st.
