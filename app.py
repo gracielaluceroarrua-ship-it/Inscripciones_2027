@@ -41,9 +41,11 @@ MENSAJE_CONOCIMIENTOS_SOLIDOS = (
 )
 
 MENSAJE_CERTIFICADO_INSTITUTO = (
-    "Si contás con un **certificado de examen internacional** o **constancia de aprobación "
-    "de inglés en un instituto privado**, debés enviarla por correo electrónico a "
-    "**inglesfmn@gmail.com**.\n\n"
+    "**Importante — seguí estos dos pasos para no perder tu lugar:**\n\n"
+    "1. **Completá primero tus datos en el formulario de abajo y hacé clic en «Enviar registro»** "
+    "para dejar asentada tu inscripción en nuestro sistema.\n"
+    "2. **Enviá el certificado de examen internacional o constancia de aprobación de instituto privado** "
+    "por correo electrónico a **inglesfmn@gmail.com**.\n\n"
     "📌 **Aclaración:** La aceptación de los certificados o constancias estará sujeta a la "
     "**evaluación del equipo docente** respecto de su **validez y alcance**."
 )
@@ -193,8 +195,9 @@ elif en_tfa == "No":
             if tiene_certificado == "Sí":
                 mensaje_exito = (
                     "✅ **Datos registrados correctamente.**\n\n"
-                    f"{MENSAJE_CERTIFICADO_INSTITUTO}\n\n"
-                    "El equipo docente se contactará con vos a la brevedad."
+                    "Recordá enviar ahora tu certificado o constancia por correo electrónico a "
+                    "**inglesfmn@gmail.com** (sujeto a evaluación del equipo docente respecto de su validez y alcance). "
+                    "Nos pondremos en contacto con vos a la brevedad."
                 )
             elif tiene_certificado == "No":
                 mensaje_exito = (
