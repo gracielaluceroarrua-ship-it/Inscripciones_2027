@@ -35,6 +35,8 @@ CARRERAS_AGRUPADAS = {
 }
 
 MENSAJE_CONOCIMIENTOS_SOLIDOS = (
+    "**Importante:** Completá tus datos en el formulario de abajo y hacé clic en **«Enviar registro»** "
+    "para dejar asentada tu inscripción.\n\n"
     "Quienes declaren conocimientos sólidos deberán realizar una **instancia diagnóstica** "
     "para determinar su nivel y ofrecerles una experiencia de cursado más provechosa. "
     "Nos pondremos en contacto con vos **a la brevedad** para informarte **día, horario y modalidad**."
