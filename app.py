@@ -59,6 +59,17 @@ CARRERAS_AGRUPADAS = {
     "Tecnicatura Universitaria en Explotación Minera",
 }
 
+CARRERAS_CUATRIMESTRALES = {
+    "Lic. en Cs. Geológicas (Plan 02/22)",
+    "Ingeniería en Minas (Plan 11/23)",
+    "Tecnicatura Universitaria en Explotación Minera",
+    "Tecnicatura Universitaria en Minería (Plan 6/15 - Vocacional)",
+    "Tecnicatura Universitaria en Obras Viales (Plan 01/18 - Vocacional)",
+    "Profesorado en Matemática",
+}
+
+URL_CAMPUS_VIRTUAL = "https://moodle4vz.unsl.edu.ar/moodle/course/view.php?id=1830"
+
 MENSAJE_CONOCIMIENTOS_SOLIDOS = (
     "**Importante:** Completá tus datos en el formulario de abajo y hacé clic en **«Enviar registro»** "
     "para dejar asentada tu inscripción.\n\n"
@@ -83,13 +94,32 @@ MENSAJE_EQUIVALENCIA_OTRA_CARRERA = (
     "**equivalencia.fmn@gmail.com**."
 )
 
-MENSAJE_CONFIRMACION_COMUN = (
-    "✅ **¡Registro guardado correctamente para Inglés 2027!**\n\n"
-    "Nos comunicaremos con vos **a la brevedad** para informarte:\n"
-    "- **Estudiantes regulares:** horarios y aulas.\n"
-    "- **Quienes declararon conocimientos sólidos:** día, horario y modalidad del examen de diagnóstico.\n"
-    "- **Quienes presentaron certificado o constancia:** pasos a seguir."
+MENSAJE_CONFIRMACION_REGULAR = (
+    "✅ **¡Inscripción registrada correctamente para Inglés 2027!**\n\n"
+    f"Ya podés automatricularte en el aula correspondiente del campus virtual de la UNSL:\n"
+    f"👉 [Acceder al Campus Virtual (Moodle)]({URL_CAMPUS_VIRTUAL})\n\n"
+    "⚠️ **Importante:** La matriculación en el campus está habilitada **únicamente para estudiantes "
+    "efectivos de la asignatura** que hayan completado este formulario. El equipo docente verificará "
+    "los listados y **dará de baja** a quienes no figuren en nuestros registros de inscripción."
 )
+
+MENSAJE_CONFIRMACION_SOLIDOS = (
+    "✅ **¡Registro guardado correctamente para Inglés 2027!**\n\n"
+    "Nos comunicaremos con vos **a la brevedad** para informarte **día, horario y modalidad** "
+    "del examen de diagnóstico."
+)
+
+MENSAJE_CONFIRMACION_CERTIFICADO = (
+    "✅ **¡Registro guardado correctamente para Inglés 2027!**\n\n"
+    "📩 **Recordatorio:** No olvides enviar ahora tu certificado o constancia por correo "
+    "electrónico a **inglesfmn@gmail.com** (sujeto a evaluación del equipo docente respecto "
+    "de su validez y alcance). Nos comunicaremos con vos **a la brevedad** para indicarte "
+    "los pasos a seguir."
+)
+
+
+def obtener_tipo_cursado(carrera: str) -> str:
+    return "Cuatrimestral" if carrera in CARRERAS_CUATRIMESTRALES else "Anual"
 
 
 def obtener_pestana_destino(tiene_certificado: str, carrera: str) -> str:
@@ -107,28 +137,47 @@ def obtener_pestana_destino(tiene_certificado: str, carrera: str) -> str:
     return base
 
 
-def enviar_a_sheets(payload: dict) -> bool:
+@st.cache_data(ttl=15)
+def obtener_horarios_disponibles(url: str, tipo_cursado: str) -> list[str]:
+    if not url or not tipo_cursado:
+        return []
+    try:
+        resp = requests.get(url, params={"tipo": tipo_cursado}, timeout=15, allow_redirects=True)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("status") == "ok":
+                return [str(h).strip() for h in data.get("horarios", []) if str(h).strip()]
+    except Exception:
+        pass
+    return []
+
+
+def enviar_a_sheets(payload: dict) -> tuple[bool, str]:
     url = str(st.secrets.get("APPS_SCRIPT_URL", "")).strip()
     if not url:
         st.error("Falta configurar APPS_SCRIPT_URL en Secrets.")
-        return False
+        return False, "error"
     try:
         resp = requests.post(url, json=payload, timeout=15, allow_redirects=True)
         if resp.status_code == 200:
             try:
                 data = resp.json()
                 if data.get("status") == "ok":
-                    return True
+                    return True, "ok"
+                if data.get("status") == "cupo_lleno":
+                    obtener_horarios_disponibles.clear()
+                    st.warning(data.get("message", "El horario seleccionado completó su cupo."))
+                    return False, "cupo_lleno"
                 st.error(f"Error en Apps Script: {data.get('message')}")
-                return False
+                return False, "error"
             except ValueError:
                 st.error("Respuesta inválida del servidor. Verificá los permisos de la Web App.")
-                return False
+                return False, "error"
         st.error(f"Error HTTP {resp.status_code} al conectar con la planilla.")
-        return False
+        return False, "error"
     except Exception as e:
         st.error(f"Error de conexión: {e}")
-        return False
+        return False, "error"
 
 
 st.title("📝 Registro de Inscripciones — Inglés 2027")
@@ -165,13 +214,14 @@ if en_tfa == "Sí":
             st.warning("Por favor, completá Apellido, Nombre y Carrera antes de registrar tu consulta.")
         else:
             with st.spinner("Registrando..."):
-                ok = enviar_a_sheets({
+                ok, _ = enviar_a_sheets({
                     "pestana": "TFA",
                     "apellido": apellido_tfa.strip(),
                     "nombre": nombre_tfa.strip(),
                     "dni": dni_tfa.strip(),
                     "email": email_tfa.strip(),
                     "carrera": carrera_tfa,
+                    "horario": "",
                 })
                 if ok:
                     st.success("✅ Consulta registrada correctamente. Recordá escribirnos cuando apruebes el TFA.")
@@ -219,42 +269,83 @@ elif en_tfa == "No":
             mostrar_formulario = True
 
         if mostrar_formulario:
-            st.subheader("3. Datos personales y académicos")
+            st.subheader("3. Datos personales, carrera y horario")
             apellido = st.text_input("Apellido", key="apellido_no_tfa")
             nombre = st.text_input("Nombre", key="nombre_no_tfa")
             dni = st.text_input("DNI (sin puntos)", key="dni_no_tfa")
             email = st.text_input("Correo electrónico", key="email_no_tfa")
             carrera = st.selectbox("Seleccioná tu carrera", ["Seleccionar..."] + CARRERAS, key="carrera_no_tfa")
 
-            if tiene_certificado == "Sí":
-                mensaje_exito = (
-                    f"{MENSAJE_CONFIRMACION_COMUN}\n\n"
-                    "📩 **Recordatorio:** No olvides enviar ahora tu certificado o constancia por correo "
-                    "electrónico a **inglesfmn@gmail.com** (sujeto a evaluación del equipo docente respecto "
-                    "de su validez y alcance)."
-                )
+            if carrera != "Seleccionar...":
+                tipo_cursado = obtener_tipo_cursado(carrera)
+                st.caption(f"Tipo de cursado para la selección de horarios: **{tipo_cursado}**")
+
+                url_script = str(st.secrets.get("APPS_SCRIPT_URL", "")).strip()
+                horarios_disp = obtener_horarios_disponibles(url_script, tipo_cursado)
+
+                col_h, col_btn = st.columns([4, 1])
+                with col_btn:
+                    st.write("")
+                    st.write("")
+                    if st.button("🔄 Actualizar", help="Actualizar cupos disponibles"):
+                        obtener_horarios_disponibles.clear()
+                        st.rerun()
+
+                with col_h:
+                    if horarios_disp:
+                        horario_elegido = st.selectbox(
+                            "Seleccioná una opción de horario de cursado",
+                            ["Seleccionar..."] + horarios_disp,
+                            key=f"horario_{tipo_cursado}",
+                        )
+                    else:
+                        horario_elegido = None
+                        st.warning(
+                            f"⚠️ No hay horarios con cupo disponible para cursado **{tipo_cursado.lower()}** "
+                            "en este momento. Consultá con la cátedra a **inglesfmn@gmail.com**."
+                        )
             else:
-                mensaje_exito = MENSAJE_CONFIRMACION_COMUN
+                tipo_cursado = ""
+                horarios_disp = []
+                horario_elegido = None
+
+            if tiene_certificado == "Sí":
+                mensaje_exito = MENSAJE_CONFIRMACION_CERTIFICADO
+            elif tiene_certificado == "No":
+                mensaje_exito = MENSAJE_CONFIRMACION_REGULAR
+            else:
+                mensaje_exito = MENSAJE_CONFIRMACION_SOLIDOS
 
             if st.button("Enviar registro", type="primary"):
-                if (
+                if carrera == "Seleccionar...":
+                    st.warning("Por favor, seleccioná tu carrera antes de enviar.")
+                elif not horarios_disp:
+                    st.warning(
+                        f"No hay cupos disponibles para cursado {tipo_cursado.lower()} en este momento."
+                    )
+                elif (
                     not (apellido.strip() and nombre.strip() and dni.strip() and email.strip())
-                    or carrera == "Seleccionar..."
+                    or not horario_elegido
+                    or horario_elegido == "Seleccionar..."
                 ):
                     st.warning(
                         "Por favor, completá Apellido, Nombre, DNI (sin puntos), Correo electrónico "
-                        "y Carrera antes de enviar."
+                        "y Horario antes de enviar."
                     )
                 else:
                     pestana_destino = obtener_pestana_destino(tiene_certificado, carrera)
                     with st.spinner("Guardando registro..."):
-                        ok = enviar_a_sheets({
+                        ok, estado = enviar_a_sheets({
                             "pestana": pestana_destino,
                             "apellido": apellido.strip(),
                             "nombre": nombre.strip(),
                             "dni": dni.strip(),
                             "email": email.strip(),
                             "carrera": carrera,
+                            "horario": horario_elegido,
                         })
                         if ok:
+                            obtener_horarios_disponibles.clear()
                             st.success(mensaje_exito)
+                        elif estado == "cupo_lleno":
+                            st.rerun()
