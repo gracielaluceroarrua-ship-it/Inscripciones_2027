@@ -70,6 +70,13 @@ CARRERAS_CUATRIMESTRALES = {
 
 URL_CAMPUS_VIRTUAL = "https://moodle4vz.unsl.edu.ar/moodle/course/view.php?id=1830"
 
+MENSAJE_INICIO_UNICO = (
+    "⚠️ **Importante:** Completá este formulario **una sola vez**. Si enviaste tus datos o "
+    "tuviste algún inconveniente durante el proceso, **no vuelvas a intentarlo por tu cuenta**: "
+    "escribinos primero a **inglesfmn@gmail.com** para que revisemos el problema antes de "
+    "volver a intentarlo."
+)
+
 MENSAJE_CONOCIMIENTOS_SOLIDOS = (
     "**Importante:** Completá tus datos en el formulario de abajo y hacé clic en **«Enviar registro»** "
     "para dejar asentada tu inscripción.\n\n"
@@ -96,7 +103,7 @@ MENSAJE_EQUIVALENCIA_OTRA_CARRERA = (
 
 MENSAJE_CONFIRMACION_REGULAR = (
     "✅ **¡Inscripción registrada correctamente para Inglés 2027!**\n\n"
-    f"Ya podés automatricularte en el aula correspondiente del campus virtual de la UNSL:\n"
+    "Ya podés automatricularte en el aula correspondiente del campus virtual de la UNSL:\n"
     f"👉 [Acceder al Campus Virtual (Moodle)]({URL_CAMPUS_VIRTUAL})\n\n"
     "⚠️ **Importante:** La matriculación en el campus está habilitada **únicamente para estudiantes "
     "efectivos de la asignatura** que hayan completado este formulario. El equipo docente verificará "
@@ -182,6 +189,7 @@ def enviar_a_sheets(payload: dict) -> tuple[bool, str]:
 
 st.title("📝 Registro de Inscripciones — Inglés 2027")
 st.write("Respondé las siguientes preguntas para completar tu registro en la asignatura.")
+st.warning(MENSAJE_INICIO_UNICO)
 
 # PASO 1: ¿Estás en TFA?
 en_tfa = st.radio(
